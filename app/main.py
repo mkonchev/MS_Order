@@ -4,3 +4,8 @@ from app.api.endpoints import router as order_router
 app = FastAPI()
 
 app.include_router(order_router)
+
+
+@app.get("/")
+def health_check():
+    return {"message": "Order works"}
