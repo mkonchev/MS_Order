@@ -5,6 +5,8 @@ from app.schemas.OrderModel import Order, OrderUpdate, OrderResponse
 import json
 import requests
 
+CATALOG_URL = "http://catalog:80"
+
 
 class OrderService:
     def __init__(self, db: Session):
@@ -16,7 +18,7 @@ class OrderService:
         for item_id in order.goods:
             try:
                 response = requests.get(
-                    f"http://127.0.0.1:8002/catalog/{item_id}",
+                    f"{CATALOG_URL}/{item_id}",
                     timeout=2,
                 )
                 if response.status_code != 200:
