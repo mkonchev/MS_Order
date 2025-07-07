@@ -5,7 +5,8 @@ from app.schemas.OrderModel import Order, OrderUpdate, OrderResponse
 import json
 import requests
 
-CATALOG_URL = "http://catalog:80"
+CATALOG_URL = "http://catalog"
+USER_URL = "http://users"
 
 
 class OrderService:
@@ -13,32 +14,9 @@ class OrderService:
         self.db = db
 
     def create_order(self, order: Order):
-        # Получаем информацию о товарах из каталога
-        goods_data = []
-        for item_id in order.goods:
-            try:
-                response = requests.get(
-                    f"{CATALOG_URL}/{item_id}",
-                    timeout=2,
-                )
-                if response.status_code != 200:
-                    continue
-                catalog_item = response.json()
-
-                goods_data.append({
-                    "id": item_id,
-                    "name": catalog_item["name"],
-                    "category": catalog_item["category"],
-                    "price": catalog_item["price"],
-                    "price_at_order": catalog_item["price"]
-                })
-            except requests.RequestException:
-                continue
-
         order_data = order.model_dump()
-        order_data["goods"] = goods_data
+        order_data["goods"] = self.get_goods(order)
         db_order = crud.create_order(self.db, Order(**order_data))
-
         return self._format_order_response(db_order)
 
     def get_order(self, order_id: int):
@@ -52,7 +30,9 @@ class OrderService:
         return [self._format_order_response(order) for order in db_orders]
 
     def update_order(self, order_id: int, order: OrderUpdate):
-        db_order = crud.update_order(self.db, order_id, order)
+        order_data = order.model_dump()
+        order_data["goods"] = self.get_goods(order)
+        db_order = crud.update_order(self.db, order_id, Order(**order_data))
         if not db_order:
             raise HTTPException(status_code=404, detail="Order not found")
         return self._format_order_response(db_order)
@@ -75,3 +55,26 @@ class OrderService:
             status=db_order.status,
             created_at=db_order.created_at
         )
+
+    def get_goods(self, order: Order):
+        goods_data = []
+        for item_id in order.goods:
+            try:
+                response = requests.get(
+                    f"{CATALOG_URL}/catalog/{item_id}",
+                    timeout=2,
+                )
+                if response.status_code != 200:
+                    continue
+                catalog_item = response.json()
+
+                goods_data.append({
+                    "id": item_id,
+                    "name": catalog_item["name"],
+                    "category": catalog_item["category"],
+                    "price": catalog_item["price"],
+                    "price_at_order": catalog_item["price"]
+                })
+            except requests.RequestException:
+                continue
+        return goods_data
