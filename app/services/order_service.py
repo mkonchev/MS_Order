@@ -6,7 +6,6 @@ import json
 import requests
 
 CATALOG_URL = "http://catalog"
-USER_URL = "http://users"
 
 
 class OrderService:
