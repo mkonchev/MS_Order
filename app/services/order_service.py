@@ -45,9 +45,24 @@ class OrderService:
         return [self._format_order_response(order) for order in db_orders]
 
     def update_order(self, order_id: int, order: OrderUpdate):
-        order_data = order.model_dump()
-        order_data["goods"] = self.get_goods(order)
-        db_order = crud.update_order(self.db, order_id, Order(**order_data))
+        goods_data = self.get_goods(order)
+        old_order = self.get_order(order_id)
+        order_data = {
+            "id": order_id,
+            "customer": order.customer,
+            "status": order.status.value,
+            "goods": json.dumps({
+                "items": [{
+                    "item_id": item.item_id,
+                    "quantity": item.quantity,
+                    "name": item.name,
+                    "price": item.price,
+                    "price_at_order": item.price_at_order
+                } for item in goods_data]
+            }),
+            "created_at": old_order.created_at
+        }
+        db_order = crud.update_order(self.db, order_id, order_data)
         if not db_order:
             raise HTTPException(status_code=404, detail="Order not found")
         return self._format_order_response(db_order)
@@ -63,7 +78,6 @@ class OrderService:
         if db_order.goods:
             try:
                 parsed = json.loads(db_order.goods)
-                # Обрабатываем разные форматы хранения
                 if isinstance(parsed, list):
                     goods_from_db = parsed
                 elif isinstance(parsed, dict) and "items" in parsed:
@@ -74,7 +88,9 @@ class OrderService:
                 print(f"Error parsing goods: {e}")
 
         total_price = sum(
-            item.get('price_at_order', 0) for item in goods_from_db
+            item.get('price_at_order', 0) or 0
+            for item in goods_from_db
+            if isinstance(item, dict)
         )
 
         return OrderResponse(

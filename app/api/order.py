@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.db.database import SessionLocal
-from app.schemas.OrderModel import Order, OrderResponse, OrderUpdate
+from app.schemas.OrderModel import Order, OrderResponse
 from app.services.order_service import OrderService
 
 router = APIRouter(prefix="/orders", tags=["orders"])
@@ -40,7 +40,7 @@ def read_order(order_id: int, db: Session = Depends(get_db)):
 @router.put("/{order_id}", response_model=OrderResponse)
 def update_order(
     order_id: int,
-    order: OrderUpdate,
+    order: Order,
     db: Session = Depends(get_db)
 ):
     service = OrderService(db)
