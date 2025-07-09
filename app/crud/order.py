@@ -1,14 +1,15 @@
 from sqlalchemy.orm import Session
 from app.db import models
-from app.schemas.OrderModel import Order, OrderUpdate
+from app.schemas.OrderModel import OrderUpdate
 import json
 
 
-def create_order(db: Session, order: Order):
+def create_order(db: Session, order_data: dict):
     db_order = models.DBOrders(
-        customer=order.customer,
-        goods=json.dumps({"items": order.goods}),
-        status=order.status
+        customer=order_data["customer"],
+        status=order_data["status"],
+        goods=order_data["goods"],
+        created_at=order_data.get("created_at")
     )
     db.add(db_order)
     db.commit()
